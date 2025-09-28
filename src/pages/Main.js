@@ -29,6 +29,9 @@ const Main = () => {
       case '6': // 订单信息管理
         navigate('/Order');
         break;
+      case '23': // 订单轨迹管理
+        navigate('/Order');
+        break;
       case '21': // 用户订单管理
         navigate('/MyOrder');
         break;
@@ -38,9 +41,7 @@ const Main = () => {
       case '9': // 优惠券
         navigate('/Coupon');
         break;
-      case '7': // 地址管理
-        navigate('/Package');
-        break;
+
       case '11': // 订单总览
         navigate('/home');
         break;
@@ -66,7 +67,7 @@ const Main = () => {
       label: '订单快递信息',
       children: [
         { key: '6', label: '订单信息管理' },
-        { key: '7', label: '地址管理' },
+        { key: '23', label: '设置订单轨迹' },
       ]
     },
     {
@@ -76,6 +77,7 @@ const Main = () => {
       children: [
         { key: '21', label: '用户订单' },
         { key: '22', label: '创建订单' },
+        { key: '7', label: '地址管理' },
       ]
 
     },

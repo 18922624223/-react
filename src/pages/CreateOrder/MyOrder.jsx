@@ -263,11 +263,13 @@ const MyOrder = () => {
         </Tag>
       ),
     },
+// 在 MyOrder.jsx 中的 columns 数组中添加新的操作列
 {
   title: '操作',
   key: 'action',
   render: (_, record) => (
     <>
+      {/* 查看详情 */}
       <Button 
         type="default" 
         icon={<EyeOutlined />} 
@@ -365,11 +367,13 @@ const MyOrder = () => {
 {/* 支付弹窗：补款支付 */}
 <OrderPay
   visible={payModalVisible}
-  totalMoney={payRecord?.express_info?.totalMoney || 0}
+  totalMoney={{
+    refundOrPay: payRecord?.refundOrPay,
+    totalMoney: payRecord?.express_info?.totalMoney
+  }}
   onPay={() => {
     message.success(`补款订单 ${payRecord.id} 支付成功`);
 
-    // ✅ 更新补款订单状态为“已补差”
     const updatedData = orderData.map(item => {
       if (item.key === payRecord.key) {
         return {
@@ -381,14 +385,13 @@ const MyOrder = () => {
     });
     setOrderData(updatedData);
 
-    // ✅ 同步更新原订单状态为“已揽收”
+    // 同步更新原订单状态为“已揽收”
     const allOrders = JSON.parse(localStorage.getItem('orderData') || '[]');
     const updatedAllOrders = allOrders.map(order => {
-      // 匹配原订单 ID（假设 COMP-xxx 对应 ORD-xxx）
       if (order.id && payRecord.id && order.id.replace('ORD-', '') === payRecord.id.replace('COMP-', '')) {
         return {
           ...order,
-          status: '4' // 已揽收
+          status: '4'
         };
       }
       return order;

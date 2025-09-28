@@ -1,8 +1,20 @@
+// src/pages/CreateOrder/OrderPay.jsx
 import React from 'react';
 import { Modal, Button } from 'antd';
 import { PayCircleOutlined } from '@ant-design/icons';
 import './OrderPay.css';
+
 const OrderPay = ({ visible, totalMoney, onPay, onCancel }) => {
+  // 获取当前订单的退款/补款金额
+  const getDisplayAmount = () => {
+    // 如果是待补差状态，显示 refundOrPay 金额
+    if (totalMoney && typeof totalMoney === 'object' && totalMoney.refundOrPay !== undefined) {
+      return totalMoney.refundOrPay;
+    }
+    // 否则显示 totalMoney
+    return totalMoney;
+  };
+
   return (
     <Modal
       title={
@@ -19,7 +31,7 @@ const OrderPay = ({ visible, totalMoney, onPay, onCancel }) => {
           取消
         </Button>,
         <Button 
-        style={{width: '100%',marginTop: '10px'}}
+          style={{width: '100%',marginTop: '10px'}}
           key="pay" 
           type="primary" 
           onClick={onPay}
@@ -44,7 +56,7 @@ const OrderPay = ({ visible, totalMoney, onPay, onCancel }) => {
           fontWeight: 'bold',
           marginBottom: '16px'
         }}>
-          ¥{totalMoney || 0}元
+          ¥{getDisplayAmount() || 0}元
         </div>
         <div style={{ 
           fontSize: '14px', 

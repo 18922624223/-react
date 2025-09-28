@@ -1,7 +1,7 @@
 // src/pages/Order/Order.jsx
 import React, { useState, useEffect } from 'react';
 import { Table, Tag, Button, Modal, Descriptions, message, Popconfirm, Form, Input, Select, Pagination, DatePicker } from 'antd';
-import { EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined, UndoOutlined } from '@ant-design/icons';
+import { EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined, UndoOutlined,PayCircleOutlined } from '@ant-design/icons';
 import { CheckOutlined } from '@ant-design/icons';
 import './Order.css';
 import { Space } from 'antd';
@@ -9,6 +9,7 @@ import moment from 'moment';
 import OrderPay from '../CreateOrder/OrderPay'; // 添加这行
 // 在文件顶部的 import 语句中添加（如果还没有）
 import { Typography, InputNumber } from 'antd';
+import RefundBox from './refundBox';
 const { Text } = Typography; // 如果还没有这行
 const { Option } = Select;
 const { Search } = Input;
@@ -33,7 +34,8 @@ const [feeDifferenceText, setFeeDifferenceText] = useState('金额无差异');
 const [showCompensationReminder, setShowCompensationReminder] = useState(false);
 const [compensationOrder, setCompensationOrder] = useState(null);
 const [payModalVisible, setPayModalVisible] = useState(false); // 添加这行
-
+const [refundModalVisible, setRefundModalVisible] = useState(false);
+const [refundInfo, setRefundInfo] = useState({ paidAmount: 0, actualAmount: 0 });
 
 // 监听 actualAmount 变化
 useEffect(() => {
@@ -62,12 +64,35 @@ const handlePickup = (record) => {
 
 // 保存揽收信息
 // 在 Order.jsx 中的 handleSavePickup 函数中添加补款逻辑
+
 // 保存揽收信息
 const handleSavePickup = () => {
   pickupForm.validateFields().then(values => {
     const { actualAmount } = values;
     const paidAmount = parseFloat(pickupRecord.express_info.totalMoney);
     const actualAmountNum = parseFloat(actualAmount);
+
+    // 如果实际金额与支付金额相同，直接设置为已揽收状态
+    if (paidAmount === actualAmountNum) {
+      const updatedData = orderData.map(item => {
+        if (item.key === pickupRecord.key) {
+          return {
+            ...item,
+            status: '4', // 已揽收
+            express_info: {
+              ...item.express_info,
+              totalMoney: actualAmount.toString()
+            }
+          };
+        }
+        return item;
+      });
+
+      setOrderData(updatedData);
+      setPickupVisible(false);
+      message.success('订单已成功揽收！');
+      return; // 直接返回，不执行后续的退款或补款逻辑
+    }
 
     let refundOrPay = 0;
     let messageText = '';
@@ -80,17 +105,17 @@ const handleSavePickup = () => {
       messageText = `还需支付 ${refundOrPay.toFixed(2)} 元`;
     }
 
-    // ✅ 更新原订单：设置为“待补差”
+    // ✅ 更新原订单：设置为"待补差"或"待退差"
     const updatedData = orderData.map(item => {
       if (item.key === pickupRecord.key) {
         return {
           ...item,
-          status: '5', // 待补差
+          status: paidAmount > actualAmountNum ? '6' : '5', // 待退差 或 待补差
           express_info: {
             ...item.express_info,
-           officalMoney: refundOrPay.toString(),
-  totalMoney: refundOrPay.toString(), // 更新为实际金额
-          }
+            totalMoney: actualAmount.toString() // 更新为实际金额
+          },
+          refundOrPay: refundOrPay // ✅ 添加退款/补款金额字段
         };
       }
       return item;
@@ -98,7 +123,17 @@ const handleSavePickup = () => {
 
     setOrderData(updatedData);
     setPickupVisible(false);
-    message.success('订单已成功揽收，等待补款');
+    message.success('订单已成功揽收，等待处理');
+
+    // 在 Order.jsx 中的 handleSavePickup 函数内，替换原来的 Modal.confirm 部分
+    if (paidAmount > actualAmountNum) {
+      // 显示自定义退款弹窗组件
+      setRefundInfo({
+        paidAmount,
+        actualAmount: actualAmountNum
+      });
+      setRefundModalVisible(true);
+    }
 
     // ✅ 创建补款订单（仅当需要补款时）
     if (actualAmountNum > paidAmount) {
@@ -181,6 +216,31 @@ const handleSavePickup = () => {
     console.log('表单验证失败:', error);
   });
 };
+
+// 添加处理退款确认的函数
+const handleRefundConfirm = () => {
+  // 更新状态为"已退差"
+  const finalUpdatedData = orderData.map(item => {
+    if (item.key === pickupRecord.key) {
+      return {
+        ...item,
+        status: '8' // 已退差
+      };
+    }
+    return item;
+  });
+  setOrderData(finalUpdatedData);
+  localStorage.setItem('orderData', JSON.stringify(finalUpdatedData));
+  message.success('退差已完成，金额已退还！');
+  setRefundModalVisible(false);
+};
+
+// 添加处理退款取消的函数
+const handleRefundCancel = () => {
+  setRefundModalVisible(false);
+  message.info('退差操作已取消');
+};
+;
 // 关闭揽收弹窗
 const handleClosePickup = () => {
   setPickupVisible(false);
@@ -1375,30 +1435,37 @@ const getStatusText = (status) => {
           pageSizeOptions={['10', '20', '50']}
         />
       </div>
-          <OrderPay
-      visible={payModalVisible}
-      totalMoney={compensationOrder?.express_info?.totalMoney}
-      onPay={() => {
-        // 更新补款订单状态为已支付
-        const updatedOrders = JSON.parse(localStorage.getItem('orderData') || '[]').map(order => {
-          if (order.key === compensationOrder.key) {
-            return {
-              ...order,
-              status: '2' // 已支付
-            };
-          }
-          return order;
-        });
-        
-        localStorage.setItem('orderData', JSON.stringify(updatedOrders));
-        setOrderData(updatedOrders);
-        setPayModalVisible(false);
-        setShowCompensationReminder(false);
-        message.success('补款支付成功！');
-      }}
-      onCancel={() => setPayModalVisible(false)}
-    />
-
+<OrderPay
+  visible={payModalVisible}
+  totalMoney={compensationOrder?.express_info?.totalMoney}
+  onPay={() => {
+    // 更新补款订单状态为已支付
+    const updatedOrders = JSON.parse(localStorage.getItem('orderData') || '[]').map(order => {
+      if (order.key === compensationOrder.key) {
+        return {
+          ...order,
+          status: '2' // 已支付
+        };
+      }
+      return order;
+    });
+    
+    localStorage.setItem('orderData', JSON.stringify(updatedOrders));
+    setOrderData(updatedOrders);
+    setPayModalVisible(false);
+    setShowCompensationReminder(false);
+    message.success('补款支付成功！');
+  }}
+  onCancel={() => setPayModalVisible(false)}
+/>
+// 在 Modal 组件附近添加 RefundBox 组件
+<RefundBox
+  visible={refundModalVisible}
+  paidAmount={refundInfo.paidAmount}
+  actualAmount={refundInfo.actualAmount}
+  onOk={handleRefundConfirm}
+  onCancel={handleRefundCancel}
+/>
       {/* 详情弹框 */}
       <Modal
         title="订单详情"
