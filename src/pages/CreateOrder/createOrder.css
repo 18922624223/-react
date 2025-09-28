@@ -1,0 +1,304 @@
+/* 全局容器样式 */
+.order-container {
+  padding: 20px;
+  background-color: #f8fafc;
+  min-height: 100vh;
+  font-family: 'Inter', 'system-ui', sans-serif;
+}
+
+/* 卡片容器样式 */
+.order-card {
+  max-width: 1200px;
+  margin: 0 auto;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+/* 头部样式 */
+.order-header {
+  background-color: #1890ff;
+  color: white;
+  padding: 24px;
+  margin: -24px -24px 24px;
+}
+
+.order-title {
+  color: white !important;
+  margin-bottom: 16px !important;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+.title-icon {
+  margin-right: 12px;
+  font-size: 22px;
+  margin-left: 40px;
+}
+
+/* 订单号输入区域 */
+.order-id-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.id-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: 40px;
+}
+
+.order-id-input {
+  width: 300px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.order-id-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.order-id-input:focus {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-color: white;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+/* 状态区域样式 */
+.order-status-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 24px 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.status-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0 !important;
+  color: #1f2937;
+  font-size: 18px !important;
+  font-weight: 600;
+}
+
+.section-icon {
+  margin-right: 8px;
+  color: #1890ff;
+  font-size: 18px;
+}
+
+.update-time {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.status-badge {
+  margin-top: 0;
+}
+
+.status-text {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+}
+
+.status-icon {
+  margin-right: 4px;
+}
+
+/* 表单区域通用样式 */
+.form-section {
+  padding: 0 24px 24px;
+}
+
+/* 表单网格布局（两列） */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 12px;
+}
+
+/* 表单字段样式（标签+输入框） */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 跨两列的字段 */
+.span-2 {
+  grid-column: span 2;
+}
+
+/* 标签样式 */
+.field-label {
+  font-size: 13px;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+/* 必填字段标记 */
+.field-label::after {
+  content: "*";
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+/* 非必填字段去除星号 */
+.optional .field-label::after {
+  content: "";
+  margin-left: 0;
+}
+
+/* 输入组件通用样式（统一高度和边框） */
+.form-input {
+  width: 100%;
+  height: 38px !important; /* 统一高度，避免布局跳动 */
+  border-radius: 4px !important;
+  border: 1px solid #d1d5db !important;
+  transition: all 0.2s ease;
+  font-size: 14px !important;
+}
+
+/* 输入框聚焦样式（优化视觉反馈） */
+.form-input:focus,
+.form-input:hover {
+  border-color: #1890ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1) !important;
+}
+
+/* 禁用状态的输入框（如利润字段） */
+.form-input:disabled,
+.form-input[disabled] {
+  background-color: #f9fafb !important;
+  color: #6b7280 !important;
+  cursor: not-allowed;
+}
+
+/* 高亮字段样式（如总价） */
+.form-field.highlight .form-input {
+  color: #1890ff !important;
+  font-weight: 500 !important;
+}
+
+/* 利润字段样式（绿色高亮） */
+.form-field.profit .form-input {
+  color: #10b981 !important;
+  font-weight: 500 !important;
+}
+
+/* 底部操作按钮区域 */
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  background-color: #f9fafb;
+  border-top: 1px solid #f0f0f0;
+  margin: 0 -10px 0px;
+}
+
+/* 支付按钮样式 */
+.pay-button {
+  background-color: #1890ff !important;
+  border-color: #1890ff !important;
+  color: white !important;
+  padding: 0 24px !important;
+  height: 40px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  width: 25%;
+}
+
+.pay-button:hover {
+  background-color: #096dd9 !important;
+  border-color: #096dd9 !important;
+}
+
+.pay-button:disabled {
+  background-color: #8cc5ff !important;
+  border-color: #8cc5ff !important;
+  cursor: not-allowed !important;
+}
+
+/* 响应式适配（移动端单列布局） */
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr; /* 移动端改为单列 */
+  }
+
+  .span-2 {
+    grid-column: span 1; /* 移动端取消跨列 */
+  }
+
+  .order-id-input {
+    width: 100%; /* 移动端订单号输入框占满宽度 */
+  }
+
+  .order-status-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .action-buttons Button {
+    width: 100%;
+  }
+  .id-label{
+    margin-left: 0px;
+  }
+  .ant-input{
+    width: 100%;
+  }
+  .ant-btn{
+    margin: auto;
+  }
+}
+
+/* 优化InputNumber样式（解决数字输入框对齐问题） */
+.ant-input-number {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.ant-input-number-input {
+  height: 100% !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 优化DatePicker样式（解决日期选择框对齐问题） */
+.ant-picker {
+  width: 100% !important;
+}
+
+/* 优化Select样式（解决下拉框对齐问题） */
+.ant-select-selector {
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.ant-input-outlined:hover {
+    border-color: #4096ff;
+    background-color: rgb(186, 226, 255);
+    
+}

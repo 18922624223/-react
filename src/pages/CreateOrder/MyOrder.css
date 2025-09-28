@@ -1,0 +1,12 @@
+/* src/pages/CreateOrder/MyOrder.css */
+.my-order-container {
+  padding: 20px;
+}
+
+.my-order-title {
+  margin-bottom: 20px;
+}
+
+.my-order-table {
+  margin-top: 20px;
+}
