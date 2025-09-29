@@ -1,0 +1,13 @@
+.ant-card{
+    flex: 1 1 0%;
+    min-width: 300px;
+    max-width: 400px;
+}
+.ant-form-item .ant-form-item-control-input-content {
+    flex: auto;
+    max-width: 90%;
+    margin: auto;
+}
+.ant-card-bordered {
+    border-radius: 8px;
+}

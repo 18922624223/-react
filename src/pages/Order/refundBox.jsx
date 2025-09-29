@@ -48,7 +48,7 @@ const RefundBox = ({
           ¥{refundAmount} 元
         </div>
         <div style={{ fontSize: '14px', color: '#666' }}>
-          退款将在1小时内原路返回至您的支付账户
+          退款将在1小时内原路返回至原支付账户
         </div>
       </div>
     </Modal>

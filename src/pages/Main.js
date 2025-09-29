@@ -30,7 +30,7 @@ const Main = () => {
         navigate('/Order');
         break;
       case '23': // 订单轨迹管理
-        navigate('/Order');
+        navigate('/OrderTrack');
         break;
       case '21': // 用户订单管理
         navigate('/MyOrder');
@@ -52,15 +52,7 @@ const Main = () => {
 
   // 修改后的 items2 - 使用具体的文字
   const items2 = [
-    {
-      key: '2',
-      icon: React.createElement(UserOutlined),
-      label: '用户管理',
-      children: [
-        { key: '3', label: '个人主页' },
-        { key: '4', label: '退出登录' },
-      ]
-    },
+    
     {
       key: '5',
       icon: React.createElement(AppstoreAddOutlined),
@@ -117,7 +109,16 @@ const Main = () => {
       key: '1',
       icon: React.createElement(SettingOutlined),
       label: '系统配置',
-    }
+    },
+    {
+      key: '2',
+      icon: React.createElement(UserOutlined),
+      label: '用户管理',
+      children: [
+        { key: '3', label: '个人主页' },
+        { key: '4', label: '退出登录' },
+      ]
+    },
   ];
 
   const UpperFloatButton = () => (

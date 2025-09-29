@@ -7,9 +7,11 @@ import OrderPay from './OrderPay';
 
 const MyOrder = () => {
   const [detailVisible, setDetailVisible] = useState(false);
+  const [trackVisible, setTrackVisible] = useState(false); // 添加轨迹弹窗状态
   const [currentRecord, setCurrentRecord] = useState(null);
   const [payModalVisible, setPayModalVisible] = useState(false);
   const [payRecord, setPayRecord] = useState(null);
+  const [trackData, setTrackData] = useState([]); // 添加轨迹数据状态
   const [orderData, setOrderData] = useState(() => {
     const savedData = localStorage.getItem('orderData');
     return savedData ? JSON.parse(savedData) : [
@@ -152,7 +154,27 @@ const MyOrder = () => {
   useEffect(() => {
     localStorage.setItem('orderData', JSON.stringify(orderData));
   }, [orderData]);
+// 在MyOrder组件的useEffect部分添加一个新的useEffect来监听localStorage变化
+useEffect(() => {
+  // 监听storage事件，当其他页面更新localStorage时同步数据
+  const handleStorageChange = (e) => {
+    if (e.key === 'orderData') {
+      try {
+        const updatedData = JSON.parse(e.newValue);
+        setOrderData(updatedData);
+      } catch (error) {
+        console.error('解析订单数据失败:', error);
+      }
+    }
+  };
 
+  window.addEventListener('storage', handleStorageChange);
+  
+  // 清理事件监听器
+  return () => {
+    window.removeEventListener('storage', handleStorageChange);
+  };
+}, []);
   // 获取状态描述
   const getStatusText = (status) => {
     const statusMap = {
@@ -177,27 +199,28 @@ const MyOrder = () => {
   };
 
   // 获取状态颜色
-  const getStatusColor = (status) => {
-    const colorMap = {
-      '-5': 'red',
-      '-4': 'red',
-      '-3': 'green',
-      '-2': 'blue',
-      '-1': 'orange',
-      '0': 'gray',
-      '1': 'yellow',
-      '2': 'cyan',
-      '3': 'blue',
-      '4': 'green',
-      '5': 'blue',
-      '6': 'blue',
-      '7': 'green',
-      '8': 'green',
-      '9': 'orange',
-      '10': 'green'
-    };
-    return colorMap[status] || 'default';
+  // 获取状态颜色
+const getStatusColor = (status) => {
+  const colorMap = {
+    '-5': '#80dfdfff',
+    '-4': '#69d6b2ff',
+    '-3': '#585757ff',
+    '-2': '#a95e42ff',
+    '-1': '#a0485aff',
+    '0': '#4b72b9ff',
+    '1': '#afa153ff',
+    '2': '#b55c88ff',
+    '3': 'orange',
+    '4': 'orange',
+    '5': '#ea9bfeff',
+    '6': '#8b8bffff',
+    '7': '#ea9bfeff',
+    '8': '#8b8bffff',
+    '9': '#ff8671ff',
+    '10': '#79d279ff'
   };
+  return colorMap[status] || 'default';
+};
 
   // 查看详情处理函数
   const handleViewDetail = (record) => {
@@ -242,7 +265,31 @@ const MyOrder = () => {
 
   // 查看轨迹处理函数
   const handleViewTrack = (record) => {
-    message.info(`查看订单 "${record.id}" 的物流轨迹`);
+    setCurrentRecord(record);
+    setTrackVisible(true);
+    
+    // 从localStorage获取该订单的轨迹信息
+    const orderTracksKey = `orderTracks_${record.id}`;
+    const savedTracks = localStorage.getItem(orderTracksKey);
+    
+    if (savedTracks) {
+      try {
+        setTrackData(JSON.parse(savedTracks));
+      } catch (e) {
+        console.error('解析轨迹数据出错:', e);
+        setTrackData([]);
+      }
+    } else {
+      // 如果没有轨迹信息，使用空数组
+      setTrackData([]);
+    }
+  };
+
+  // 关闭轨迹弹窗
+  const handleCloseTrack = () => {
+    setTrackVisible(false);
+    setCurrentRecord(null);
+    setTrackData([]);
   };
 
   // 表格列配置
@@ -263,72 +310,71 @@ const MyOrder = () => {
         </Tag>
       ),
     },
-// 在 MyOrder.jsx 中的 columns 数组中添加新的操作列
-{
-  title: '操作',
-  key: 'action',
-  render: (_, record) => (
-    <>
-      {/* 查看详情 */}
-      <Button 
-        type="default" 
-        icon={<EyeOutlined />} 
-        onClick={() => handleViewDetail(record)}
-        style={{ marginRight: 30 }}
-      >
-        查看详情
-      </Button>
-
-      {/* 根据状态决定按钮 */}
-      {record.status === '5' ? (
-        // 待补差：显示“支付”按钮
-        <Button
-          type="primary"
-          onClick={() => {
-            setPayModalVisible(true);
-            setPayRecord(record); // 保存当前记录用于支付
-          }}
-          style={{ marginRight: 30 }}
-        >
-          支付
-        </Button>
-      ) : (
-        // 其他状态：显示“取消订单”
-        <Popconfirm
-          title="确定要取消这个订单吗？"
-          onConfirm={() => handleCancelOrder(record)}
-          okText="确定"
-          cancelText="取消"
-          disabled={record.status === '10' || record.status === '-5' || record.status === '-3'}
-        >
-          <Button
-            type="primary"
-            danger
-            icon={<DeleteOutlined />}
-            style={{
-              marginRight: 30,
-              backgroundColor: (record.status === '10' || record.status === '-5' || record.status === '-3') ? '#d9d9d9' : '#ff4d4f',
-              borderColor: (record.status === '10' || record.status === '-5' || record.status === '-3') ? '#bfbfbf' : '#ff4d4f',
-              color: (record.status === '10' || record.status === '-5' || record.status === '-3') ? '#999' : '#fff',
-              cursor: (record.status === '10' || record.status === '-5' || record.status === '-3') ? 'not-allowed' : 'pointer'
-            }}
-            disabled={record.status === '10' || record.status === '-5' || record.status === '-3'}
+    {
+      title: '操作',
+      key: 'action',
+      render: (_, record) => (
+        <>
+          {/* 查看详情 */}
+          <Button 
+            type="default" 
+            icon={<EyeOutlined />} 
+            onClick={() => handleViewDetail(record)}
+            style={{ marginRight: 30 }}
           >
-            取消订单
+            查看详情
           </Button>
-        </Popconfirm>
-      )}
 
-      <Button 
-        type="default" 
-        icon={<HistoryOutlined />} 
-        onClick={() => handleViewTrack(record)}
-      >
-        查看轨迹
-      </Button>
-    </>
-  ),
-}
+          {/* 根据状态决定按钮 */}
+          {record.status === '5' ? (
+            // 待补差：显示"支付"按钮
+            <Button
+              type="primary"
+              onClick={() => {
+                setPayModalVisible(true);
+                setPayRecord(record); // 保存当前记录用于支付
+              }}
+              style={{ marginRight: 30 }}
+            >
+              支付
+            </Button>
+          ) : (
+            // 其他状态：显示"取消订单"
+            <Popconfirm
+              title="确定要取消这个订单吗？"
+              onConfirm={() => handleCancelOrder(record)}
+              okText="确定"
+              cancelText="取消"
+              disabled={record.status === '10' || record.status === '-5' || record.status === '-3'}
+            >
+              <Button
+                type="primary"
+                danger
+                icon={<DeleteOutlined />}
+                style={{
+                  marginRight: 30,
+                  backgroundColor: (record.status === '10' || record.status === '-5' || record.status === '-3') ? '#d9d9d9' : '#ff4d4f',
+                  borderColor: (record.status === '10' || record.status === '-5' || record.status === '-3') ? '#bfbfbf' : '#ff4d4f',
+                  color: (record.status === '10' || record.status === '-5' || record.status === '-3') ? '#999' : '#fff',
+                  cursor: (record.status === '10' || record.status === '-5' || record.status === '-3') ? 'not-allowed' : 'pointer'
+                }}
+                disabled={record.status === '10' || record.status === '-5' || record.status === '-3'}
+              >
+                取消订单
+              </Button>
+            </Popconfirm>
+          )}
+
+          <Button 
+            type="default" 
+            icon={<HistoryOutlined />} 
+            onClick={() => handleViewTrack(record)}
+          >
+            查看轨迹
+          </Button>
+        </>
+      ),
+    }
   ];
 
   return (
@@ -342,67 +388,240 @@ const MyOrder = () => {
       />
 
       {/* 详情弹框 */}
-{/* 详情弹框 */}
-<Modal
-  title="订单详情"
-  visible={detailVisible}
-  onCancel={handleCloseDetail}
-  footer={null}
-  width={800}
->
-  {currentRecord && (
-    <Descriptions bordered column={2}>
-      <Descriptions.Item label="订单ID" span={2}>{currentRecord.id}</Descriptions.Item>
-      <Descriptions.Item label="客户名称">{currentRecord.name}</Descriptions.Item>
-      <Descriptions.Item label="状态">
-        <Tag color={getStatusColor(currentRecord.status)}>
-          {getStatusText(currentRecord.status)}
-        </Tag>
-      </Descriptions.Item>
-      {/* 其他字段... */}
-    </Descriptions>
-  )}
-</Modal>
+      <Modal
+        title="订单详情"
+        visible={detailVisible}
+        onCancel={handleCloseDetail}
+        footer={null}
+        width={800}
+      >
+        {currentRecord && (
+          <Descriptions bordered column={2}>
+            <Descriptions.Item label="订单ID" span={2}>{currentRecord.id || currentRecord.trackId}</Descriptions.Item>
+            <Descriptions.Item label="客户名称">{currentRecord.name}</Descriptions.Item>
+            <Descriptions.Item label="状态">
+              <Tag color={getStatusColor(currentRecord.status)}>
+                {getStatusText(currentRecord.status)}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="平台">{currentRecord.platform || '未知'}</Descriptions.Item>
+            <Descriptions.Item label="公司ID">{currentRecord.companyId || '无'}</Descriptions.Item>
+            <Descriptions.Item label="价格策略ID">{currentRecord.priceStrategyId || '无'}</Descriptions.Item>
+            <Descriptions.Item label="标签">
+              <Tag color={currentRecord.tagcolor || 'default'}>
+                {currentRecord.tag || '无'}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="页面名称">{currentRecord.pagename || '无'}</Descriptions.Item>
+            <Descriptions.Item label="类型">
+              {currentRecord.type === '1' ? '快递' : currentRecord.type === '2' ? '物流' : '未知'}
+            </Descriptions.Item>
+            <Descriptions.Item label="禁止下单">
+              {currentRecord.banOrder === '1' ? '是' : '否'}
+            </Descriptions.Item>
+            <Descriptions.Item label="备注">{currentRecord.notice || currentRecord.remark || '无'}</Descriptions.Item>
+            <Descriptions.Item label="优惠券ID">{currentRecord.couponId || '无'}</Descriptions.Item>
+            <Descriptions.Item label="追踪ID">{currentRecord.trackId || '无'}</Descriptions.Item>
+            <Descriptions.Item label="UUID">{currentRecord.uuid || '无'}</Descriptions.Item>
+            <Descriptions.Item label="圆通ID">{currentRecord.ydId || '无'}</Descriptions.Item>
+            <Descriptions.Item label="渠道ID">{currentRecord.channelId || '无'}</Descriptions.Item>
+            <Descriptions.Item label="快递ID">{currentRecord.expressId || '无'}</Descriptions.Item>
+            <Descriptions.Item label="发货人ID">{currentRecord.senderInfoId || '无'}</Descriptions.Item>
+            <Descriptions.Item label="收货人ID">{currentRecord.addressseeInfoId || '无'}</Descriptions.Item>
+            <Descriptions.Item label="取件开始时间">
+              {currentRecord.pickUpStartTime && currentRecord.pickUpStartTime !== "1970-01-01T00:00:00.000Z" 
+                ? new Date(currentRecord.pickUpStartTime).toLocaleString() 
+                : '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="取件结束时间">
+              {currentRecord.pickUpEndTime && currentRecord.pickUpEndTime !== "1970-01-01T00:00:00.000Z" 
+                ? new Date(currentRecord.pickUpEndTime).toLocaleString() 
+                : '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="物品名称">{currentRecord.itemName || '无'}</Descriptions.Item>
+            <Descriptions.Item label="包裹数量">{currentRecord.packageNum || '无'}</Descriptions.Item>
+            <Descriptions.Item label="快递公司">{currentRecord.deliveryBusiness || '无'}</Descriptions.Item>
+            <Descriptions.Item label="配送类型">{currentRecord.deliveryType || '无'}</Descriptions.Item>
+            <Descriptions.Item label="客户类型">{currentRecord.customerType || '无'}</Descriptions.Item>
+            
+            {/* 发货人信息 */}
+            <Descriptions.Item label="发货人姓名" span={2}>
+              {currentRecord.senderInfo?.name || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="发货人手机">
+              {currentRecord.senderInfo?.phone || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="发货人电话">
+              {currentRecord.senderInfo?.telephone || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="发货省">
+              {currentRecord.senderInfo?.province || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="发货市">
+              {currentRecord.senderInfo?.city || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="发货区">
+              {currentRecord.senderInfo?.district || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="发货地址" span={2}>
+              {currentRecord.senderInfo?.address || '无'}
+            </Descriptions.Item>
+            
+            {/* 收货人信息 */}
+            <Descriptions.Item label="收货人姓名" span={2}>
+              {currentRecord.addressseeInfo?.name || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="收货人手机">
+              {currentRecord.addressseeInfo?.phone || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="收货人电话">
+              {currentRecord.addressseeInfo?.telephone || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="收货省">
+              {currentRecord.addressseeInfo?.province || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="收货市">
+              {currentRecord.addressseeInfo?.city || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="收货区">
+              {currentRecord.addressseeInfo?.district || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="收货地址" span={2}>
+              {currentRecord.addressseeInfo?.address || '无'}
+            </Descriptions.Item>
+            
+            {/* 快递信息 */}
+            <Descriptions.Item label="快递类型">
+              {currentRecord.express_info?.type || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="重量(KG)">
+              {currentRecord.express_info?.weight || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="体积(M³)">
+              {currentRecord.express_info?.volume || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="长(CM)">
+              {currentRecord.express_info?.length || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="宽(CM)">
+              {currentRecord.express_info?.width || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="高(CM)">
+              {currentRecord.express_info?.height || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="比率">
+              {currentRecord.express_info?.ratio || '无'}
+            </Descriptions.Item>
+            <Descriptions.Item label="官方费用">
+              ¥{currentRecord.express_info?.officalMoney || '0'}
+            </Descriptions.Item>
+            <Descriptions.Item label="总费用">
+              ¥{currentRecord.express_info?.totalMoney || '0'}
+            </Descriptions.Item>
+            <Descriptions.Item label="代理费用">
+              ¥{currentRecord.express_info?.agentMoney || '0'}
+            </Descriptions.Item>
+            <Descriptions.Item label="利润">
+              ¥{currentRecord.express_info?.profitMoney || '0'}
+            </Descriptions.Item>
+          </Descriptions>
+        )}
+      </Modal>
 
-{/* 支付弹窗：补款支付 */}
-<OrderPay
-  visible={payModalVisible}
-  totalMoney={{
-    refundOrPay: payRecord?.refundOrPay,
-    totalMoney: payRecord?.express_info?.totalMoney
-  }}
-  onPay={() => {
-    message.success(`补款订单 ${payRecord.id} 支付成功`);
+      {/* 轨迹弹窗 */}
+      <Modal
+        title={`订单 ${currentRecord?.id || ''} 轨迹信息`}
+        visible={trackVisible}
+        onCancel={handleCloseTrack}
+        footer={null}
+        width={800}
+      >
+        <div style={{ 
+          marginTop: '20px', 
+          position: 'relative',
+          paddingLeft: '20px',
+          borderLeft: '2px solid #e8e8e8'
+        }}>
+          {trackData && trackData.length > 0 ? (
+            [...trackData].sort((a, b) => new Date(b.time) - new Date(a.time)).map((track, index) => (
+              <div key={index} style={{ 
+                marginBottom: '20px',
+                position: 'relative',
+                paddingLeft: '20px'
+              }}>
+                {/* 时间点 */}
+                <div 
+                  style={{
+                    position: 'absolute',
+                    left: '-33px',
+                    top: '0',
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    backgroundColor: index === 0 ? '#1890ff' : '#d9d9d9',
+                    border: index === 0 ? '2px solid #1890ff' : '2px solid #d9d9d9',
+                    boxShadow: index === 0 ? '0 0 0 2px rgba(24, 144, 255, 0.3)' : 'none'
+                  }}
+                />
+                
+                {/* 轨迹信息 */}
+                <div style={{ 
+                  width: '95%',
+                  padding: '10px',
+                  background: '#f9f9f9',
+                  borderRadius: '8px',
+                  border: '1px solid #e8e8e8'
+                }}>
+                  <div style={{ color: '#999', fontSize: '12px' }}>{track.time}</div>
+                  <div style={{ marginTop: '5px' }}>{track.desc}</div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#999' }}>
+              暂无轨迹信息
+            </div>
+          )}
+        </div>
+      </Modal>
 
-    const updatedData = orderData.map(item => {
-      if (item.key === payRecord.key) {
-        return {
-          ...item,
-          status: '7' // 已补差
-        };
-      }
-      return item;
-    });
-    setOrderData(updatedData);
+      {/* 支付弹窗：补款支付 */}
+      <OrderPay
+        visible={payModalVisible}
+        totalMoney={{
+          refundOrPay: payRecord?.refundOrPay,
+          totalMoney: payRecord?.express_info?.totalMoney
+        }}
+        onPay={() => {
+          message.success(`补款订单 ${payRecord.id} 支付成功`);
 
-    // 同步更新原订单状态为“已揽收”
-    const allOrders = JSON.parse(localStorage.getItem('orderData') || '[]');
-    const updatedAllOrders = allOrders.map(order => {
-      if (order.id && payRecord.id && order.id.replace('ORD-', '') === payRecord.id.replace('COMP-', '')) {
-        return {
-          ...order,
-          status: '4'
-        };
-      }
-      return order;
-    });
-    localStorage.setItem('orderData', JSON.stringify(updatedAllOrders));
-    setPayModalVisible(false);
-  }}
-  onCancel={() => setPayModalVisible(false)}
-/>
+          const updatedData = orderData.map(item => {
+            if (item.key === payRecord.key) {
+              return {
+                ...item,
+                status: '7' // 已补差
+              };
+            }
+            return item;
+          });
+          setOrderData(updatedData);
 
-
+          // 同步更新原订单状态为"已揽收"
+          const allOrders = JSON.parse(localStorage.getItem('orderData') || '[]');
+          const updatedAllOrders = allOrders.map(order => {
+            if (order.id && payRecord.id && order.id.replace('ORD-', '') === payRecord.id.replace('COMP-', '')) {
+              return {
+                ...order,
+                status: '4'
+              };
+            }
+            return order;
+          });
+          localStorage.setItem('orderData', JSON.stringify(updatedAllOrders));
+          setPayModalVisible(false);
+        }}
+        onCancel={() => setPayModalVisible(false)}
+      />
     </div>
   );
 };

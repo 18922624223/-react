@@ -36,7 +36,27 @@ const [compensationOrder, setCompensationOrder] = useState(null);
 const [payModalVisible, setPayModalVisible] = useState(false); // 添加这行
 const [refundModalVisible, setRefundModalVisible] = useState(false);
 const [refundInfo, setRefundInfo] = useState({ paidAmount: 0, actualAmount: 0 });
+// 在Order组件的useEffect部分添加一个新的useEffect来监听localStorage变化
+useEffect(() => {
+  // 监听storage事件，当其他页面更新localStorage时同步数据
+  const handleStorageChange = (e) => {
+    if (e.key === 'orderData') {
+      try {
+        const updatedData = JSON.parse(e.newValue);
+        setOrderData(updatedData);
+      } catch (error) {
+        console.error('解析订单数据失败:', error);
+      }
+    }
+  };
 
+  window.addEventListener('storage', handleStorageChange);
+  
+  // 清理事件监听器
+  return () => {
+    window.removeEventListener('storage', handleStorageChange);
+  };
+}, []);
 // 监听 actualAmount 变化
 useEffect(() => {
   const actualAmount = pickupForm.getFieldValue('actualAmount') || 0;
@@ -989,31 +1009,31 @@ useEffect(() => {
       key: 'name',
     },
     {
-  title: '状态',
-  dataIndex: 'status',
-  key: 'status',
-  render: (status) => {
-    const statusMap = {
-      '-5': { text: '订单取消', color: 'red' },
-      '-4': { text: '揽收取消', color: 'red' },
-      '-3': { text: '已退款', color: 'green' },
-      '-2': { text: '待退款', color: 'blue' },
-      '-1': { text: '订单异常', color: 'orange' },
-      '0': { text: '待支付', color: 'gray' },
-      '1': { text: '更换快递', color: 'yellow' },
-      '2': { text: '已支付', color: 'cyan' },
-      '3': { text: '待揽收', color: 'blue' },
-      '4': { text: '已揽收', color: 'green' },
-      '5': { text: '待补差', color: 'blue' },
-      '6': { text: '待退差', color: 'blue' },
-      '7': { text: '已补差', color: 'green' },
-      '8': { text: '已退差', color: 'green' },
-      '9': { text: '运输中', color: 'orange' },
-      '10': { text: '已送达', color: 'green' }
-    };
-    return <Tag color={statusMap[status]?.color}>{statusMap[status]?.text}</Tag>;
-  }
-},
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => {
+        const statusMap = {
+          '-5': { text: '订单取消', color: '#80dfdfff' },
+          '-4': { text: '揽收取消', color: '#69d6b2ff' },
+          '-3': { text: '已退款', color: '#585757ff' },
+          '-2': { text: '待退款', color: '#a95e42ff' },
+          '-1': { text: '订单异常', color: '#a0485aff' },
+          '0': { text: '待支付', color: '#4b72b9ff' },
+          '1': { text: '更换快递', color: '#afa153ff' },
+          '2': { text: '已支付', color: '#b55c88ff' },
+          '3': { text: '待揽收', color: 'orange' },
+          '4': { text: '已揽收', color: 'orange' },
+          '5': { text: '待补差', color: '#ea9bfeff' },
+          '6': { text: '待退差', color: '#8b8bffff' },
+          '7': { text: '已补差', color: '#ea9bfeff' },
+          '8': { text: '已退差', color: '#8b8bffff' },
+          '9': { text: '运输中', color: '#ff8671ff' },
+          '10': { text: '已送达', color: '#79d279ff' }
+        };
+        return <Tag color={statusMap[status]?.color}>{statusMap[status]?.text}</Tag>;
+      }
+    },
    
     {
       title: '查看详情',
@@ -1458,7 +1478,6 @@ const getStatusText = (status) => {
   }}
   onCancel={() => setPayModalVisible(false)}
 />
-// 在 Modal 组件附近添加 RefundBox 组件
 <RefundBox
   visible={refundModalVisible}
   paidAmount={refundInfo.paidAmount}
@@ -1490,22 +1509,22 @@ const getStatusText = (status) => {
             <Descriptions.Item label="备注">{currentRecord.notice}</Descriptions.Item>
             <Descriptions.Item label="状态">
               <Tag color={
-                currentRecord.status === '-5' ? 'pink' :
-                currentRecord.status === '-4' ? 'red' :
-                currentRecord.status === '-3' ? 'orange' :
-                currentRecord.status === '-2' ? 'green' :
-                currentRecord.status === '-1' ? 'blue' :
-                currentRecord.status === '0' ? 'gray' :
-                currentRecord.status === '1' ? 'purple' :
-                currentRecord.status === '2' ? 'cyan' :
-                currentRecord.status === '3' ? 'cyan' :
-                currentRecord.status === '4' ? 'gray' :
-                currentRecord.status === '5' ? 'red' :
-                currentRecord.status === '6' ? 'pink' :
-                currentRecord.status === '7' ? 'blue' :
-                currentRecord.status === '8' ? 'green' :
-                currentRecord.status === '9' ? 'orange' :
-                currentRecord.status === '10' ? 'green' : 'default'
+                currentRecord.status === '-5' ? '#80dfdfff' :
+                currentRecord.status === '-4' ? '#69d6b2ff' :
+                currentRecord.status === '-3' ? '#585757ff' :
+                currentRecord.status === '-2' ? '#a95e42ff' :
+                currentRecord.status === '-1' ? '#a0485aff' :
+                currentRecord.status === '0' ? '#4b72b9ff' :
+                currentRecord.status === '1' ? '#afa153ff' :
+                currentRecord.status === '2' ? '#b55c88ff' :
+                currentRecord.status === '3' ? 'orange' :
+                currentRecord.status === '4' ? 'orange' :
+                currentRecord.status === '5' ? '#ea9bfeff' :
+                currentRecord.status === '6' ? '#8b8bffff' :
+                currentRecord.status === '7' ? '#ea9bfeff' :
+                currentRecord.status === '8' ? '#8b8bffff' :
+                currentRecord.status === '9' ? '#ff8671ff' :
+                currentRecord.status === '10' ? '#79d279ff' : 'default'
               }> {getStatusText(currentRecord.status)}
               </Tag>
             </Descriptions.Item>
