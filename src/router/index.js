@@ -10,6 +10,7 @@ import Package from "../pages/Package/Package";
 import CreateOrder from "../pages/CreateOrder/createOrder";
 import MyOrder from "../pages/CreateOrder/MyOrder";
 import OrderTrack from "../pages/Order/OrderTrack"; 
+import AddressManagement from "../pages/addressManagement/addressManagement";
 const routers = [
   {
     path: "/",
@@ -27,6 +28,7 @@ const routers = [
           { path: 'CreateOrder', element: <CreateOrder /> } ,
           { path: 'MyOrder', element: <MyOrder /> } ,
           { path: 'OrderTrack', element: <OrderTrack /> } ,
+          { path: 'addressManagement', element: <AddressManagement /> } ,
 
         ]
       }

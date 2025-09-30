@@ -41,7 +41,9 @@ const Main = () => {
       case '9': // 优惠券
         navigate('/Coupon');
         break;
-
+      case '7': // 订单总览
+        navigate('/AddressManagement');
+        break;
       case '11': // 订单总览
         navigate('/home');
         break;
