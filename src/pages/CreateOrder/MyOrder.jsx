@@ -553,7 +553,7 @@ const getStatusColor = (status) => {
                 <div 
                   style={{
                     position: 'absolute',
-                    left: '-33px',
+                    left: '-31px',
                     top: '0',
                     width: '20px',
                     height: '20px',

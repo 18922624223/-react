@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>工单审批管理系统</title>
+  <!-- 引入外部资源 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  
+  <!-- Tailwind 配置 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#165DFF',
+            success: '#00B42A',
+            warning: '#FF7D00',
+            danger: '#F53F3F',
+            neutral: {
+              100: '#F2F3F5',
+              200: '#E5E6EB',
+              300: '#C9CDD4',
+              400: '#86909C',
+              500: '#4E5969',
+              600: '#1D2129',
+            }
+          },
+          fontFamily: {
+            inter: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <!-- 自定义工具类 -->
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .card-shadow {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+      .transition-bg {
+        transition: background-color 0.3s ease;
+      }
+      .transition-transform {
+        transition: transform 0.3s ease;
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-neutral-100 font-inter text-neutral-600 min-h-screen flex flex-col">
+
+  <!-- 主内容区 -->
+  <main class="flex-grow container mx-auto px-4 py-6">
+
+    
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white rounded-lg p-5 card-shadow hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-neutral-400 text-sm">待处理审批</p>
+            <h3 class="text-2xl font-bold mt-1 text-primary" id="pendingCount">0</h3>
+          </div>
+          <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+            <i class="fa fa-clock-o"></i>
+          </div>
+        </div>
+        <div class="mt-4 text-xs text-success flex items-center">
+          <i class="fa fa-arrow-up mr-1"></i> 较昨日增长 12%
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg p-5 card-shadow hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-neutral-400 text-sm">已批准</p>
+            <h3 class="text-2xl font-bold mt-1 text-success" id="approvedCount">0</h3>
+          </div>
+          <div class="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center text-success">
+            <i class="fa fa-check"></i>
+          </div>
+        </div>
+        <div class="mt-4 text-xs text-success flex items-center">
+          <i class="fa fa-arrow-up mr-1"></i> 较昨日增长 8%
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg p-5 card-shadow hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-neutral-400 text-sm">已拒绝</p>
+            <h3 class="text-2xl font-bold mt-1 text-danger" id="rejectedCount">0</h3>
+          </div>
+          <div class="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center text-danger">
+            <i class="fa fa-times"></i>
+          </div>
+        </div>
+        <div class="mt-4 text-xs text-danger flex items-center">
+          <i class="fa fa-arrow-down mr-1"></i> 较昨日下降 5%
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg p-5 card-shadow hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-neutral-400 text-sm">总审批数</p>
+            <h3 class="text-2xl font-bold mt-1 text-neutral-600" id="totalCount">0</h3>
+          </div>
+          <div class="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center text-neutral-500">
+            <i class="fa fa-list-alt"></i>
+          </div>
+        </div>
+        <div class="mt-4 text-xs text-success flex items-center">
+          <i class="fa fa-arrow-up mr-1"></i> 较昨日增长 6%
+        </div>
+      </div>
+    </div>
+    
+    <!-- 筛选和搜索区域 -->
+    <div class="bg-white rounded-lg p-4 mb-6 card-shadow">
+      <form id="searchForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label for="trackId" class="block text-sm font-medium text-neutral-500 mb-1">工单编号</label>
+          <input type="text" id="trackId" name="trackId" placeholder="请输入工单编号" 
+                 class="w-full px-3 py-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all">
+        </div>
+        
+        <div>
+          <label for="status" class="block text-sm font-medium text-neutral-500 mb-1">审批状态</label>
+          <select id="status" name="status" 
+                  class="w-full px-3 py-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none bg-white">
+            <option value="0">全部状态</option>
+            <option value="1">待处理</option>
+            <option value="2">已批准</option>
+            <option value="-1">已拒绝</option>
+          </select>
+        </div>
+        
+        <div class="flex items-end">
+          <button type="submit" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md transition-colors flex items-center mr-2">
+            <i class="fa fa-search mr-1"></i> 搜索
+          </button>
+          <button type="reset" class="bg-white border border-neutral-200 hover:bg-neutral-100 text-neutral-500 px-4 py-2 rounded-md transition-colors">
+            重置
+          </button>
+        </div>
+      </form>
+    </div>
+    
+    <!-- 审批列表 -->
+    <div class="bg-white rounded-lg overflow-hidden card-shadow mb-6">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-neutral-200">
+          <thead class="bg-neutral-100">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">ID</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">工单编号</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">类型</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">状态</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">申请备注</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">创建时间</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">操作</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-neutral-200" id="approvalList">
+            <!-- 加载状态 -->
+            <tr>
+              <td colspan="7" class="px-6 py-12 text-center">
+                <div class="flex flex-col items-center">
+                  <div class="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-3"></div>
+                  <p class="text-neutral-400">加载审批数据中...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- 分页控制 -->
+      <div class="px-6 py-4 border-t border-neutral-200 flex flex-col md:flex-row justify-between items-center">
+        <div class="text-sm text-neutral-500 mb-4 md:mb-0">
+          显示 <span id="showingRange">1-10</span> 条，共 <span id="totalItems">0</span> 条
+        </div>
+        
+        <div class="flex items-center space-x-1">
+          <button id="prevPage" class="px-3 py-1 border border-neutral-200 rounded-md bg-white text-neutral-500 hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            <i class="fa fa-chevron-left text-xs"></i>
+          </button>
+          
+          <div id="pagination" class="flex items-center">
+            <!-- 页码会动态生成 -->
+          </div>
+          
+          <button id="nextPage" class="px-3 py-1 border border-neutral-200 rounded-md bg-white text-neutral-500 hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            <i class="fa fa-chevron-right text-xs"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <!-- 审批处理模态框 -->
+  <div id="processModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg w-full max-w-md mx-4 transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
+      <div class="p-5 border-b border-neutral-200">
+        <h3 class="text-lg font-semibold text-neutral-600">处理审批</h3>
+        <p class="text-sm text-neutral-400 mt-1" id="modalTrackId">工单编号: WY20230104212711248799</p>
+      </div>
+      
+      <form id="processForm" class="p-5">
+        <input type="hidden" id="processId">
+        <input type="hidden" id="processTrackId">
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-neutral-500 mb-1">审批状态</label>
+          <div class="flex space-x-4">
+            <label class="inline-flex items-center">
+              <input type="radio" name="processStatus" value="2" class="text-primary focus:ring-primary" checked>
+              <span class="ml-2 text-sm text-neutral-600">批准</span>
+            </label>
+            <label class="inline-flex items-center">
+              <input type="radio" name="processStatus" value="-1" class="text-primary focus:ring-primary">
+              <span class="ml-2 text-sm text-neutral-600">拒绝</span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <label for="processRemark" class="block text-sm font-medium text-neutral-500 mb-1">审批备注</label>
+          <textarea id="processRemark" name="processRemark" rows="3" placeholder="请输入审批备注信息" 
+                    class="w-full px-3 py-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"></textarea>
+        </div>
+        
+        <div class="mb-4">
+          <label class="inline-flex items-center">
+            <input type="checkbox" id="returnCoupon" name="returnCoupon" value="1" class="text-primary focus:ring-primary">
+            <span class="ml-2 text-sm text-neutral-600">退回优惠券</span>
+          </label>
+        </div>
+      </form>
+      
+      <div class="p-4 border-t border-neutral-200 flex justify-end space-x-3">
+        <button id="closeModal" class="px-4 py-2 border border-neutral-200 rounded-md text-neutral-500 hover:bg-neutral-100 transition-colors">
+          取消
+        </button>
+        <button id="submitProcess" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
+          提交审批
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 通知提示 -->
+  <div id="toast" class="fixed top-4 right-4 px-4 py-3 rounded-md shadow-lg transform translate-x-full transition-transform duration-300 flex items-center z-50">
+    <i id="toastIcon" class="mr-2 text-success"><i class="fa fa-check-circle"></i></i>
+    <span id="toastMessage">操作成功</span>
+  </div>
+  
+
+  <script>
+    // 全局变量
+    const API_TOKEN = 'd2f689fee6a4a2389bfdc6c925e03e9d'; // 示例token
+    let currentPage = 1;
+    let pageSize = 10;
+    let totalItems = 0;
+    let totalPages = 0;
+    let currentStatus = 0;
+    let currentTrackId = '';
+    
+    // DOM 元素
+    const approvalList = document.getElementById('approvalList');
+    const searchForm = document.getElementById('searchForm');
+    const prevPageBtn = document.getElementById('prevPage');
+    const nextPageBtn = document.getElementById('nextPage');
+    const paginationContainer = document.getElementById('pagination');
+    const showingRange = document.getElementById('showingRange');
+    const totalItemsEl = document.getElementById('totalItems');
+    const processModal = document.getElementById('processModal');
+    const modalContent = document.getElementById('modalContent');
+    const closeModalBtn = document.getElementById('closeModal');
+    const submitProcessBtn = document.getElementById('submitProcess');
+    const processForm = document.getElementById('processForm');
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toastMessage');
+    const toastIcon = document.getElementById('toastIcon');
+    
+    // 统计数据元素
+    const pendingCountEl = document.getElementById('pendingCount');
+    const approvedCountEl = document.getElementById('approvedCount');
+    const rejectedCountEl = document.getElementById('rejectedCount');
+    const totalCountEl = document.getElementById('totalCount');
+    
+    // 初始化页面
+    document.addEventListener('DOMContentLoaded', () => {
+      // 获取审批列表数据
+      fetchApprovalList();
+      
+      // 搜索表单提交
+      searchForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        currentPage = 1; // 重置到第一页
+        currentStatus = parseInt(document.getElementById('status').value);
+        currentTrackId = document.getElementById('trackId').value.trim();
+        fetchApprovalList();
+      });
+      
+      // 重置按钮
+      searchForm.querySelector('button[type="reset"]').addEventListener('click', () => {
+        currentPage = 1;
+        currentStatus = 0;
+        currentTrackId = '';
+        fetchApprovalList();
+      });
+      
+      // 分页控制
+      prevPageBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          fetchApprovalList();
+        }
+      });
+      
+      nextPageBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          fetchApprovalList();
+        }
+      });
+      
+      // 模态框控制
+      closeModalBtn.addEventListener('click', closeModal);
+      
+      // 点击模态框外部关闭
+      processModal.addEventListener('click', (e) => {
+        if (e.target === processModal) {
+          closeModal();
+        }
+      });
+      
+      // 提交审批
+      submitProcessBtn.addEventListener('click', submitApprovalProcess);
+      
+      // 监听滚动，改变导航栏样式
+      window.addEventListener('scroll', () => {
+        const header = document.querySelector('header');
+        if (window.scrollY > 10) {
+          header.classList.add('shadow');
+        } else {
+          header.classList.remove('shadow');
+        }
+      });
+    });
+    
+    // 获取审批列表数据
+    async function fetchApprovalList() {
+      try {
+        // 显示加载状态
+        showLoading();
+        
+        // 模拟API请求（实际项目中替换为真实接口调用）
+        // 这里使用示例数据，实际项目中应该发送真实请求
+        const response = await mockApiCall('/admin/approval/list', {
+          method: 'POST',
+          params: { token: API_TOKEN },
+          body: {
+            current: currentPage,
+            pageSize: pageSize,
+            status: currentStatus,
+            trackId: currentTrackId
+          }
+        });
+        
+        if (response.code === 200) {
+          renderApprovalList(response.data);
+          updatePagination(response.total);
+          updateStatistics(response.data);
+        } else {
+          showToast('获取数据失败: ' + response.msg, 'error');
+        }
+      } catch (error) {
+        console.error('获取审批列表失败:', error);
+        showToast('获取数据失败，请重试', 'error');
+        renderErrorState();
+      }
+    }
+    
+    // 渲染审批列表
+    function renderApprovalList(data) {
+      if (!data || data.length === 0) {
+        approvalList.innerHTML = `
+          <tr>
+            <td colspan="7" class="px-6 py-12 text-center">
+              <div class="flex flex-col items-center">
+                <i class="fa fa-inbox text-4xl text-neutral-200 mb-3"></i>
+                <p class="text-neutral-400">没有找到匹配的审批记录</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      approvalList.innerHTML = data.map(item => `
+        <tr class="hover:bg-neutral-50 transition-bg">
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">${item.id}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary">${item.trackId}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">${getApprovalTypeText(item.type)}</td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(item.status)}">
+              ${getStatusText(item.status)}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-sm text-neutral-600 max-w-xs truncate">${item.applyRemark || '-'}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">${formatDate(item.createAt)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+            ${item.status === 1 ? `
+              <button onclick="openProcessModal(${item.id}, '${item.trackId}')" 
+                      class="text-primary hover:text-primary/80 mr-3 transition-colors">
+                处理
+              </button>
+            ` : ''}
+            <button onclick="showDetail(${item.id})" 
+                    class="text-neutral-500 hover:text-neutral-700 transition-colors">
+              查看
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+    
+    // 更新分页
+    function updatePagination(total) {
+      totalItems = total;
+      totalPages = Math.ceil(totalItems / pageSize);
+      
+      // 更新显示范围和总数
+      const start = (currentPage - 1) * pageSize + 1;
+      const end = Math.min(currentPage * pageSize, totalItems);
+      showingRange.textContent = `${start}-${end}`;
+      totalItemsEl.textContent = totalItems;
+      
+      // 更新分页按钮状态
+      prevPageBtn.disabled = currentPage === 1;
+      nextPageBtn.disabled = currentPage === totalPages;
+      
+      // 生成页码
+      renderPagination();
+    }
+    
+    // 渲染分页按钮
+    function renderPagination() {
+      paginationContainer.innerHTML = '';
+      
+      // 最多显示5个页码
+      let startPage = Math.max(1, currentPage - 2);
+      let endPage = Math.min(totalPages, startPage + 4);
+      
+      // 如果后面页数不足，向前补充
+      if (endPage - startPage < 4 && startPage > 1) {
+        startPage = Math.max(1, endPage - 4);
+      }
+      
+      // 添加第一页和省略号（如果需要）
+      if (startPage > 1) {
+        addPageButton(1);
+        if (startPage > 2) {
+          addEllipsis();
+        }
+      }
+      
+      // 添加中间页码
+      for (let i = startPage; i <= endPage; i++) {
+        addPageButton(i);
+      }
+      
+      // 添加最后一页和省略号（如果需要）
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          addEllipsis();
+        }
+        addPageButton(totalPages);
+      }
+    }
+    
+    // 添加页码按钮
+    function addPageButton(pageNum) {
+      const button = document.createElement('button');
+      button.className = `px-3 py-1 rounded-md text-sm transition-colors ${
+        pageNum === currentPage 
+          ? 'bg-primary text-white' 
+          : 'bg-white text-neutral-500 hover:bg-neutral-100 border border-neutral-200'
+      }`;
+      button.textContent = pageNum;
+      button.addEventListener('click', () => {
+        currentPage = pageNum;
+        fetchApprovalList();
+      });
+      paginationContainer.appendChild(button);
+    }
+    
+    // 添加省略号
+    function addEllipsis() {
+      const ellipsis = document.createElement('span');
+      ellipsis.className = 'px-2 text-neutral-400';
+      ellipsis.textContent = '...';
+      paginationContainer.appendChild(ellipsis);
+    }
+    
+    // 打开处理审批模态框
+    function openProcessModal(id, trackId) {
+      document.getElementById('processId').value = id;
+      document.getElementById('processTrackId').value = trackId;
+      document.getElementById('modalTrackId').textContent = `工单编号: ${trackId}`;
+      document.getElementById('processRemark').value = '';
+      document.getElementById('returnCoupon').checked = false;
+      
+      // 显示模态框并添加动画
+      processModal.classList.remove('hidden');
+      setTimeout(() => {
+        modalContent.classList.remove('scale-95', 'opacity-0');
+        modalContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
+      
+      // 阻止页面滚动
+      document.body.style.overflow = 'hidden';
+    }
+    
+    // 关闭模态框
+    function closeModal() {
+      modalContent.classList.remove('scale-100', 'opacity-100');
+      modalContent.classList.add('scale-95', 'opacity-0');
+      
+      setTimeout(() => {
+        processModal.classList.add('hidden');
+        document.body.style.overflow = ''; // 恢复页面滚动
+      }, 300);
+    }
+    
+    // 提交审批处理结果
+    async function submitApprovalProcess() {
+      const id = document.getElementById('processId').value;
+      const trackId = document.getElementById('processTrackId').value;
+      const remark = document.getElementById('processRemark').value.trim();
+      const status = document.querySelector('input[name="processStatus"]:checked').value;
+      const returnCoupon = document.getElementById('returnCoupon').checked ? '1' : '0';
+      
+      // 简单验证
+      if (!remark) {
+        showToast('请输入审批备注', 'warning');
+        return;
+      }
+      
+      try {
+        // 模拟API请求
+        const response = await mockApiCall('/admin/approval/process', {
+          method: 'POST',
+          params: { token: API_TOKEN },
+          body: {
+            trackId,
+            remark,
+            status,
+            returnCoupon
+          }
+        });
+        
+        if (response.code === 200) {
+          showToast('审批处理成功', 'success');
+          closeModal();
+          fetchApprovalList(); // 重新加载列表
+        } else {
+          showToast('处理失败: ' + response.msg, 'error');
+        }
+      } catch (error) {
+        console.error('提交审批失败:', error);
+        showToast('处理失败，请重试', 'error');
+      }
+    }
+    
+    // 显示详情
+    function showDetail(id) {
+      showToast(`查看ID为 ${id} 的审批详情`, 'info');
+      // 实际项目中可以打开详情模态框或跳转到详情页
+    }
+    
+    // 显示加载状态
+    function showLoading() {
+      approvalList.innerHTML = `
+        <tr>
+          <td colspan="7" class="px-6 py-12 text-center">
+            <div class="flex flex-col items-center">
+              <div class="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-3"></div>
+              <p class="text-neutral-400">加载审批数据中...</p>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+    
+    // 渲染错误状态
+    function renderErrorState() {
+      approvalList.innerHTML = `
+        <tr>
+          <td colspan="7" class="px-6 py-12 text-center">
+            <div class="flex flex-col items-center">
+              <i class="fa fa-exclamation-triangle text-4xl text-warning mb-3"></i>
+              <p class="text-neutral-400 mb-2">加载失败，请尝试刷新页面</p>
+              <button onclick="fetchApprovalList()" class="text-primary hover:text-primary/80 text-sm">
+                点击重试
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+    
+    // 显示提示消息
+    function showToast(message, type = 'success') {
+      toastMessage.textContent = message;
+      
+      // 设置提示类型样式
+      if (type === 'success') {
+        toast.className = 'fixed top-4 right-4 px-4 py-3 rounded-md shadow-lg transform transition-transform duration-300 flex items-center z-50 bg-success/10 text-success border border-success/20';
+        toastIcon.innerHTML = '<i class="fa fa-check-circle"></i>';
+      } else if (type === 'error') {
+        toast.className = 'fixed top-4 right-4 px-4 py-3 rounded-md shadow-lg transform transition-transform duration-300 flex items-center z-50 bg-danger/10 text-danger border border-danger/20';
+        toastIcon.innerHTML = '<i class="fa fa-times-circle"></i>';
+      } else if (type === 'warning') {
+        toast.className = 'fixed top-4 right-4 px-4 py-3 rounded-md shadow-lg transform transition-transform duration-300 flex items-center z-50 bg-warning/10 text-warning border border-warning/20';
+        toastIcon.innerHTML = '<i class="fa fa-exclamation-triangle"></i>';
+      } else if (type === 'info') {
+        toast.className = 'fixed top-4 right-4 px-4 py-3 rounded-md shadow-lg transform transition-transform duration-300 flex items-center z-50 bg-primary/10 text-primary border border-primary/20';
+        toastIcon.innerHTML = '<i class="fa fa-info-circle"></i>';
+      }
+      
+      // 显示提示
+      toast.classList.remove('translate-x-full');
+      toast.classList.add('translate-x-0');
+      
+      // 3秒后隐藏
+      setTimeout(() => {
+        toast.classList.remove('translate-x-0');
+        toast.classList.add('translate-x-full');
+      }, 3000);
+    }
+    
+    // 更新统计数据
+    function updateStatistics(data) {
+      // 实际项目中应该从API获取统计数据
+      let pending = 0;
+      let approved = 0;
+      let rejected = 0;
+      
+      data.forEach(item => {
+        if (item.status === 1) pending++;
+        else if (item.status === 2) approved++;
+        else if (item.status === -1) rejected++;
+      });
+      
+      // 带动画的数字更新
+      animateNumber(pendingCountEl, pending);
+      animateNumber(approvedCountEl, approved);
+      animateNumber(rejectedCountEl, rejected);
+      animateNumber(totalCountEl, pending + approved + rejected);
+    }
+    
+    // 数字动画
+    function animateNumber(element, target) {
+      const duration = 500; // 动画持续时间（毫秒）
+      const frameDuration = 1000 / 60; // 每帧持续时间
+      const totalFrames = Math.round(duration / frameDuration);
+      let frame = 0;
+      const start = parseInt(element.textContent) || 0;
+      const increment = (target - start) / totalFrames;
+      
+      const animate = () => {
+        frame++;
+        const current = Math.round(start + increment * frame);
+        element.textContent = current;
+        
+        if (frame < totalFrames) {
+          requestAnimationFrame(animate);
+        } else {
+          element.textContent = target;
+        }
+      };
+      
+      animate();
+    }
+    
+    // 格式化日期
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+    
+    // 获取审批类型文本
+    function getApprovalTypeText(type) {
+      const types = {
+        1: '退款申请',
+        2: '取消订单',
+        3: '修改信息',
+        4: '其他申请'
+      };
+      return types[type] || `类型 ${type}`;
+    }
+    
+    // 获取状态文本
+    function getStatusText(status) {
+      const statusMap = {
+        0: '全部状态',
+        1: '待处理',
+        2: '已批准',
+        '-1': '已拒绝'
+      };
+      return statusMap[status] || `未知状态 ${status}`;
+    }
+    
+    // 获取状态样式类
+    function getStatusClass(status) {
+      const classMap = {
+        1: 'bg-warning/10 text-warning', // 待处理 - 黄色
+        2: 'bg-success/10 text-success', // 已批准 - 绿色
+        '-1': 'bg-danger/10 text-danger'   // 已拒绝 - 红色
+      };
+      return classMap[status] || 'bg-neutral-100 text-neutral-500';
+    }
+    
+    // 模拟API调用
+    async function mockApiCall(url, options) {
+      // 模拟网络延迟
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // 模拟审批列表接口
+      if (url === '/admin/approval/list') {
+        // 生成模拟数据
+        const { current, pageSize, status, trackId } = options.body;
+        const total = 28; // 总记录数
+        
+        // 根据状态筛选
+        let filteredData = [];
+        for (let i = 1; i <= total; i++) {
+          // 随机状态，但确保有不同状态的记录
+          let itemStatus = 1; // 待处理
+          if (i % 3 === 0) itemStatus = 2; // 已批准
+          if (i % 5 === 0) itemStatus = -1; // 已拒绝
+          
+          // 应用状态筛选
+          if (status !== 0 && itemStatus !== status) continue;
+          
+          // 应用工单编号筛选
+          const itemTrackId = `WY20230${i}${Math.floor(Math.random() * 10000000000)}`;
+          if (trackId && !itemTrackId.includes(trackId)) continue;
+          
+          filteredData.push({
+            id: i,
+            trackId: itemTrackId,
+            uuid: `uuid-${i}-${Math.random().toString(36).substr(2, 9)}`,
+            type: Math.floor(Math.random() * 4) + 1,
+            status: itemStatus,
+            applyRemark: i % 4 === 0 ? '' : `这是第${i}条审批的申请备注信息`,
+            createAt: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString(),
+            processAdmin: null,
+            processRemark: itemStatus !== 1 ? `处理备注 ${i}` : ''
+          });
+        }
+        
+        // 分页处理
+        const startIndex = (current - 1) * pageSize;
+        const paginatedData = filteredData.slice(startIndex, startIndex + pageSize);
+        
+        return {
+          code: 200,
+          msg: '成功',
+          data: paginatedData,
+          page: current,
+          total: filteredData.length
+        };
+      }
+      
+      // 模拟处理审批接口
+      if (url === '/admin/approval/process') {
+        return {
+          code: 200,
+          msg: '成功'
+        };
+      }
+      
+      // 未知接口
+      return {
+        code: 500,
+        msg: '未知接口'
+      };
+    }
+    
+    // 暴露函数到全局，供HTML调用
+    window.openProcessModal = openProcessModal;
+    window.showDetail = showDetail;
+    window.fetchApprovalList = fetchApprovalList;
+  </script>
+</body>
+</html>

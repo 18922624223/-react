@@ -361,7 +361,7 @@ const OrderTrack = () => {
                     <div 
                       style={{
                         position: 'absolute',
-                        left: '-30px',
+                        left: '-33px',
                         top: '0',
                         width: '20px',
                         height: '20px',

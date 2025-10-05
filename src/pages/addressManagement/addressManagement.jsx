@@ -13,7 +13,7 @@ const { Content } = Layout;
 const { Option } = Select;
 const { TextArea } = Input;
 
-// 地址管理主组件（默认导出，确保可正常导入使用）
+// 地址管理主组件
 const AddressManagement = () => {
   // 1. 状态管理
   const [form] = Form.useForm(); // 表单实例
@@ -185,12 +185,14 @@ const AddressManagement = () => {
     }
   ];
 
-  // 4. 表格选择配置（单选模式，可改为多选）
+  // 4. 表格选择配置（修改为多选模式）
   const rowSelection = {
     selectedRowKeys,
     onChange: (newSelectedRowKeys) => setSelectedRowKeys(newSelectedRowKeys),
-    type: 'radio',
-    getCheckboxProps: () => ({ disabled: false })
+    type: 'checkbox',  // 从radio改为checkbox支持多选
+    getCheckboxProps: (record) => ({ 
+      disabled: record.isDefault  // 默认地址不能被选择删除
+    })
   };
 
   // 5. 核心功能方法
@@ -223,65 +225,103 @@ const AddressManagement = () => {
     setIsModalVisible(true);
   };
 
-// 智能地址识别（优化后的逻辑）
-const handleSmartRecognition = () => {
-  const fullAddress = form.getFieldValue('fullAddress');
-  if (!fullAddress) {
-    message.warning('请输入完整地址（含省市区、详细地址、收件人、电话）');
-    return;
-  }
+  // 智能地址识别
+  const handleSmartRecognition = () => {
+    const fullAddress = form.getFieldValue('fullAddress');
+    if (!fullAddress) {
+      message.warning('请输入完整地址（含省市区、详细地址、收件人、电话）');
+      return;
+    }
 
-  // 提取邮政编码（6位数字开头）
-  const postalCodeMatch = fullAddress.match(/^(\d{6})/);
-  const postalCode = postalCodeMatch ? postalCodeMatch[1] : '';
+    // 1. 提取手机号（11位数字，通常在末尾）
+    const phoneMatch = fullAddress.match(/1[3-9]\d{9}/);
+    const phone = phoneMatch?.[0] || '';
+    
+    // 2. 提取收件人（手机号前的2-4个中文字符）
+    let name = '';
+    if (phone) {
+      const nameMatch = fullAddress.match(new RegExp(`([\u4e00-\u9fa5]{2,4})\\s*${phone}`));
+      name = nameMatch?.[1] || '';
+    }
+    
+    // 3. 提取省份（中国省级行政区列表）
+    const provinces = [
+      '北京市', '上海市', '天津市', '重庆市',
+      '河北省', '山西省', '辽宁省', '吉林省', '黑龙江省',
+      '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省',
+      '河南省', '湖北省', '湖南省', '广东省', '海南省', '四川省',
+      '贵州省', '云南省', '陕西省', '甘肃省', '青海省', '台湾省',
+      '内蒙古自治区', '广西壮族自治区', '宁夏回族自治区',
+      '新疆维吾尔自治区', '西藏自治区', '香港特别行政区', '澳门特别行政区'
+    ];
+    let province = '';
+    for (const p of provinces) {
+      if (fullAddress.includes(p)) {
+        province = p;
+        break;
+      }
+    }
+    
+    // 4. 提取城市（省份后紧跟的城市名）
+    let city = '';
+    if (province) {
+      const remainingAfterProvince = fullAddress.split(province)[1] || '';
+      // 匹配常见城市后缀（市/自治州/地区等）
+      const cityMatch = remainingAfterProvince.match(/([\u4e00-\u9fa5]{2,10})(市|自治州|地区|盟|特别行政区)/);
+      city = cityMatch?.[0] || '';
+    }
+    
+    // 5. 提取区县（城市后紧跟的区/县/市）
+    let district = '';
+    if (city) {
+      const remainingAfterCity = fullAddress.split(city)[1] || '';
+      // 匹配常见区县后缀
+      const districtMatch = remainingAfterCity.match(/([\u4e00-\u9fa5]{2,10})(区|县|市|旗|街道)/);
+      district = districtMatch?.[0] || '';
+    }
+    
+    // 6. 提取详细地址（去除已识别部分）
+    let detail = fullAddress;
+    // 移除省份
+    if (province) detail = detail.replace(province, '');
+    // 移除城市
+    if (city) detail = detail.replace(city, '');
+    // 移除区县
+    if (district) detail = detail.replace(district, '');
+    // 移除姓名和电话
+    if (name) detail = detail.replace(name, '');
+    if (phone) detail = detail.replace(phone, '');
+    // 清理多余字符和空格
+    detail = detail
+      .replace(/\s+/g, ' ')  // 多个空格合并为一个
+      .replace(/^[\s,，、]+/, '')  // 移除开头的空白和标点
+      .replace(/[\s,，、]+$/, '')  // 移除结尾的空白和标点
+      .trim();
 
-  // 提取收件人姓名（末尾的中文字符，不包含数字）
-  const nameMatch = fullAddress.match(/([\u4e00-\u9fa5]{2,4})$/);
-  
-  // 提取手机号（11位数字）
-  const phoneMatch = fullAddress.match(/(1[3-9]\d{9})/);
-  
-  // 省份匹配
-  const provinceMatch = fullAddress.match(/(广东省|广西省|湖南省|湖北省|河南省|河北省|山东省|山西省|陕西省|甘肃省|青海省|云南省|贵州省|四川省|海南省|福建省|江西省|安徽省|浙江省|江苏省|黑龙江省|吉林省|辽宁省|内蒙古自治区|新疆维吾尔自治区|西藏自治区|宁夏回族自治区|广西壮族自治区|北京市|天津市|上海市|重庆市)/);
-  
-  // 城市匹配
-  const cityMatch = fullAddress.match(/([\u4e00-\u9fa5]{2,4}[市州])/);
-  
-  // 区县匹配
-  const districtMatch = fullAddress.match(/([\u4e00-\u9fa5]{2,5}[区县街道镇乡])/);
+    // 7. 处理未识别情况的默认值
+    const result = {
+      name: name || '未识别',
+      phone: phone || '未识别',
+      province: province || '请补充省份',
+      city: city || '请补充城市',
+      district: district || '请补充区县',
+      detail: detail || '未识别'
+    };
 
-  // 构建详细地址（移除邮政编码、姓名、手机号）
-  let detail = fullAddress;
-  if (postalCodeMatch) detail = detail.replace(postalCodeMatch[0], '');
-  if (nameMatch) detail = detail.replace(nameMatch[0], '');
-  if (phoneMatch) detail = detail.replace(phoneMatch[0], '');
-  detail = detail.trim().replace(/^[\s,，]+/, ''); // 去除开头的空格和逗号
-
-  // 设置默认值
-  const result = {
-    name: nameMatch?.[0] || '未识别',
-    phone: phoneMatch?.[0] || '未识别',
-    province: provinceMatch?.[0] || '广东省', // 默认广东省
-    city: cityMatch?.[0] || '清远市', // 默认清远市
-    district: districtMatch?.[0] || '洲心街道', // 默认洲心街道
-    detail: detail || '未识别',
-    postalCode: postalCode || ''
+    setRecognitionResult(result);
+    
+    // 填充解析结果到表单
+    form.setFieldsValue({
+      name: result.name,
+      phone: result.phone,
+      province: result.province,
+      city: result.city,
+      district: result.district,
+      detail: result.detail
+    });
+    
+    message.success('地址识别完成，可修改后保存');
   };
-
-  setRecognitionResult(result);
-  
-  // 填充解析结果到表单
-  form.setFieldsValue({
-    name: result.name,
-    phone: result.phone,
-    province: result.province,
-    city: result.city,
-    district: result.district,
-    detail: result.detail
-  });
-  
-  message.success('地址识别完成，可修改后保存');
-};
 
   // 提交表单（新增/编辑）
   const handleFormSubmit = () => {
@@ -321,7 +361,6 @@ const handleSmartRecognition = () => {
         setAddressList(updatedList);
         saveAddressesToLocalStorage(updatedList); // 保存到本地存储
         setIsModalVisible(false);
-        // 实际项目需调用保存接口：axios.post('/api/address/save', addressData)
       })
       .catch(info => {
         console.error('表单验证失败：', info);
@@ -329,32 +368,31 @@ const handleSmartRecognition = () => {
       });
   };
 
-  // 单个地址删除
+  // 单个地址删除（修复版）
   const handleDeleteSingle = (id) => {
+    console.log('准备删除ID:', id); // 调试用
     const address = addressList.find(item => item.id === id);
-    if (address && address.isDefault) {
+    if (!address) {
+      message.error('未找到该地址');
+      return;
+    }
+    
+    if (address.isDefault) {
       message.warning('默认地址不能删除');
       return;
     }
     
-    Modal.confirm({
-      title: '确认删除',
-      content: '此操作将永久删除该地址，删除后无法恢复，是否继续？',
-      okText: '确认',
-      cancelText: '取消',
-      okType: 'danger',
-      onOk: () => {
-        const updatedList = addressList.filter(item => item.id !== id);
-        setAddressList(updatedList);
-        saveAddressesToLocalStorage(updatedList); // 保存到本地存储
-        setSelectedRowKeys(selectedRowKeys.filter(key => key !== id)); // 清空选中状态
-        message.success('地址删除成功');
-        // 实际项目需调用删除接口：axios.delete(`/api/address/delete/${id}`)
-      }
-    });
+    // 使用window.confirm作为备选方案，确保弹窗能正常显示
+    if (window.confirm('此操作将永久删除该地址，删除后无法恢复，是否继续？')) {
+      const updatedList = addressList.filter(item => item.id !== id);
+      setAddressList(updatedList);
+      saveAddressesToLocalStorage(updatedList);
+      setSelectedRowKeys(selectedRowKeys.filter(key => key !== id));
+      message.success('地址删除成功');
+    }
   };
 
-  // 批量删除地址
+  // 批量删除地址（修复版）
   const handleBatchDelete = () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请先选择要删除的地址');
@@ -371,21 +409,14 @@ const handleSmartRecognition = () => {
       return;
     }
 
-    Modal.confirm({
-      title: '批量删除确认',
-      content: `您将删除选中的 ${selectedRowKeys.length} 个地址，删除后无法恢复，是否继续？`,
-      okText: '确认',
-      cancelText: '取消',
-      okType: 'danger',
-      onOk: () => {
-        const updatedList = addressList.filter(item => !selectedRowKeys.includes(item.id));
-        setAddressList(updatedList);
-        saveAddressesToLocalStorage(updatedList); // 保存到本地存储
-        setSelectedRowKeys([]); // 清空选中状态
-        message.success(`成功删除 ${selectedRowKeys.length} 个地址`);
-        // 实际项目需调用批量删除接口：axios.post('/api/address/batchDelete', { ids: selectedRowKeys })
-      }
-    });
+    // 使用window.confirm作为备选方案，确保弹窗能正常显示
+    if (window.confirm(`您将删除选中的 ${selectedRowKeys.length} 个地址，删除后无法恢复，是否继续？`)) {
+      const updatedList = addressList.filter(item => !selectedRowKeys.includes(item.id));
+      setAddressList(updatedList);
+      saveAddressesToLocalStorage(updatedList);
+      setSelectedRowKeys([]);
+      message.success(`成功删除 ${selectedRowKeys.length} 个地址`);
+    }
   };
 
   // 设置默认地址
@@ -395,9 +426,8 @@ const handleSmartRecognition = () => {
       isDefault: item.id === id
     }));
     setAddressList(updatedList);
-    saveAddressesToLocalStorage(updatedList); // 保存到本地存储
+    saveAddressesToLocalStorage(updatedList);
     message.success('默认地址设置成功');
-    // 实际项目需调用设置默认接口：axios.post('/api/address/setDefault', { id })
   };
 
   // 6. 组件渲染
@@ -421,17 +451,16 @@ const handleSmartRecognition = () => {
               地址管理
             </h1>
             <Space size="middle">
-              {/* 批量删除按钮（选中地址后显示） */}
-              {selectedRowKeys.length > 0 && (
-                <Button
-                  type="primary"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={handleBatchDelete}
-                >
-                  批量删除
-                </Button>
-              )}
+              {/* 批量删除按钮（始终显示，未选择时禁用） */}
+              <Button
+                type="primary"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={handleBatchDelete}
+                disabled={selectedRowKeys.length === 0}
+              >
+                批量删除
+              </Button>
               {/* 新增地址按钮 */}
               <Button
                 type="primary"
@@ -461,7 +490,7 @@ const handleSmartRecognition = () => {
                 size: 'middle'
               }}
               locale={{ emptyText: '暂无地址数据，点击"新增地址"添加' }}
-              scroll={{ x: 900 }} // 适配小屏幕横向滚动
+              scroll={{ x: 900 }}
               size="middle"
             />
           </Card>
@@ -476,9 +505,9 @@ const handleSmartRecognition = () => {
         onOk={handleFormSubmit}
         okText="保存"
         cancelText="取消"
-        destroyOnClose // 关闭弹窗销毁表单，避免数据残留
+        destroyOnClose
         width={700}
-        maskClosable={false} // 点击遮罩不关闭弹窗
+        maskClosable={false}
       >
         <Form
           form={form}
@@ -537,99 +566,71 @@ const handleSmartRecognition = () => {
             )}
           </Form.Item>
 
-            {/* 基础信息：收件人 + 手机号（两种模式通用） */}
-            <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-              <Form.Item
-                name="name"
-                label="收件人"
-                rules={[
-                  { required: true, message: '请输入收件人姓名' },
-                  { max: 20, message: '姓名长度不能超过20个字符' }
-                ]}
-                style={{ flex: 1, marginBottom: 0 }}
-              >
-                <Input placeholder="请输入收件人姓名" />
-              </Form.Item>
-              <Form.Item
-                name="phone"
-                label="联系电话"
-                rules={[
-                  { required: true, message: '请输入联系电话' },
-                  { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的11位手机号' }
-                ]}
-                style={{ flex: 1, marginBottom: 0 }}
-              >
-                <Input placeholder="请输入11位手机号" />
-              </Form.Item>
-            </div>
-
-            {/* 地区选择：省 + 市 + 区（两种模式通用） */}
-            <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-              <Form.Item
-                name="province"
-                label="省份"
-                rules={[{ required: true, message: '请输入省份' }]}
-                style={{ flex: 1, marginBottom: 0 }}
-                >
-                <Input placeholder="请输入省份" />
-                </Form.Item>
-              <Form.Item
-                name="city"
-                label="城市"
-                rules={[{ required: true, message: '请输入城市' }]}
-                style={{ flex: 1, marginBottom: 0 }}
-                >
-                <Input placeholder="请输入城市" />
-                </Form.Item>
-
-              <Form.Item
-                name="district"
-                label="区县"
-                rules={[{ required: true, message: '请输入区县' }]}
-                style={{ flex: 1, marginBottom: 0 }}
-                >
-                <Input placeholder="请输入区县" />
-                </Form.Item>
-            </div>
-
-            {/* 详细地址（两种模式通用） */}
+          {/* 基础信息：收件人 + 手机号（两种模式通用） */}
+          <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
             <Form.Item
-              name="detail"
-              label="详细地址"
+              name="name"
+              label="收件人"
               rules={[
-                { required: true, message: '请输入详细地址' },
-                { max: 100, message: '详细地址长度不能超过100个字符' }
+                { required: true, message: '请输入收件人姓名' },
+                { pattern: /^[\u4e00-\u9fa5a-zA-Z ]{2,10}$/, message: '请输入2-10位有效姓名' }
               ]}
-              style={{ marginBottom: 16 }}
+              style={{ flex: 1 }}
             >
-              <Input.TextArea
-                rows={2}
-                placeholder="请输入街道、门牌号、单元号等详细信息"
-              />
+              <Input placeholder="请输入收件人姓名" />
+            </Form.Item>
+            
+            <Form.Item
+              name="phone"
+              label="联系电话"
+              rules={[
+                { required: true, message: '请输入联系电话' },
+                { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的11位手机号码' }
+              ]}
+              style={{ flex: 1 }}
+            >
+              <Input placeholder="请输入联系电话" maxLength={11} />
+            </Form.Item>
+          </div>
+
+          {/* 地址信息：省市区 + 详细地址 */}
+          <Form.Item name="province" label="省份" rules={[{ required: true, message: '请输入省份' }]}>
+            <Input placeholder="请输入省份" />
+          </Form.Item>
+
+          <Form.Item name="city" label="城市" rules={[{ required: true, message: '请输入城市' }]}>
+            <Input placeholder="请输入城市" />
+          </Form.Item>
+          <Form.Item name="district" label="区/县" rules={[{ required: true, message: '请输入区/县' }]}>
+            <Input placeholder="请输入区/县" />
+          </Form.Item>
+
+          <Form.Item
+            name="detail"
+            label="详细地址"
+            rules={[{ required: true, message: '请输入详细地址' }, { min: 5, message: '详细地址至少5个字符' }]}
+          >
+            <TextArea rows={3} placeholder="请输入街道门牌、楼层房间号等详细信息" />
+          </Form.Item>
+
+          {/* 地址标签和默认地址设置 */}
+          <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+            <Form.Item name="tag" label="地址标签" style={{ flex: 1 }}>
+              <Select placeholder="请选择地址标签">
+                <Option value="家庭">家庭</Option>
+                <Option value="公司">公司</Option>
+                <Option value="其他">其他</Option>
+              </Select>
             </Form.Item>
 
-            {/* 地址标签 + 默认地址（两种模式通用） */}
-            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-              <Form.Item
-                name="tag"
-                label="地址标签"
-                rules={[{ required: true, message: '请选择地址标签' }]}
-                style={{ marginBottom: 0 }}
-              >
-                <Select placeholder="请选择标签">
-                  <Option value="家庭">家庭</Option>
-                  <Option value="公司">公司</Option>
-                  <Option value="其他">其他</Option>
-                </Select>
-              </Form.Item>
-              <Form.Item name="isDefault" valuePropName="checked" style={{ marginBottom: 0 }}>
-                <Checkbox>设为默认地址</Checkbox>
-              </Form.Item>
-            </div>
-          </Form>
-        </Modal>
-      </Layout>
-    );
-  };
+            <Form.Item name="isDefault" valuePropName="checked" label="设为默认" style={{ flex: 1 }}>
+              <Checkbox>设为默认收货地址</Checkbox>
+            </Form.Item>
+          </div>
+        </Form>
+      </Modal>
+    </Layout>
+  );
+};
 
 export default AddressManagement;

@@ -21,107 +21,107 @@ const Main = () => {
   
   const navigate = useNavigate();
 
+  // 修改后的 items2 - 使用具体的文字
+  const items2 = [
+    {
+      key: '1',
+      icon: React.createElement(AppstoreAddOutlined),
+      label: '订单快递信息',
+      children: [
+        { key: '2', label: '订单信息管理' },
+        { key: '3', label: '设置订单轨迹' },
+      ]
+    },
+    {
+      key: '4',
+      icon: React.createElement(LaptopOutlined),
+      label: '用户订单管理',
+      children: [
+        { key: '5', label: '用户订单' },
+        { key: '6', label: '创建订单' },
+        { key: '7', label: '地址管理' },
+      ]
+    },
+    {
+      key: '8',
+      icon: React.createElement(DollarOutlined),
+      label: '优惠券',
+    },
+    {
+      key: '9',
+      icon: React.createElement(PieChartOutlined),
+      label: '数据看板',
+    },
+    {
+      key: '10',
+      icon: React.createElement(CalendarOutlined),
+      label: '工单',
+    },
+    {
+      key: '11',
+      icon: React.createElement(CommentOutlined),
+      label: '消息中心',
+    },
+    {
+      key: '12',
+      icon: React.createElement(UserOutlined),
+      label: '用户管理',
+      children: [
+        { key: '13', label: '个人主页' },
+        { key: '14', label: '退出登录' },
+      ]
+    },
+  ];
+
   const handleMenuClick = ({ key }) => {
     switch(key) {
-      case '3': // 个人主页
-        navigate('/User');
+      case '1': // 订单快递信息
+        // navigate to order info page
         break;
-      case '6': // 订单信息管理
+      case '2': // 订单信息管理
         navigate('/Order');
         break;
-      case '23': // 订单轨迹管理
+      case '3': // 设置订单轨迹
         navigate('/OrderTrack');
         break;
-      case '21': // 用户订单管理
+      case '4': // 用户订单管理
+        // navigate to user order management page
+        break;
+      case '5': // 用户订单
         navigate('/MyOrder');
         break;
-      case '22': // 创建订单
+      case '6': // 创建订单
         navigate('/CreateOrder');
         break;
-      case '9': // 优惠券
-        navigate('/Coupon');
-        break;
-      case '7': // 订单总览
+      case '7': // 地址管理
         navigate('/AddressManagement');
         break;
-      case '11': // 订单总览
-        navigate('/home');
+      case '8': // 优惠券
+        navigate('/Coupon');
+        break;
+      case '9': // 数据看板
+        navigate('/Statistics');
+        break;
+      case '10': // 工单
+        navigate('/WordOrder');
+        break;
+      case '11': // 消息中心
+        navigate('/Message');
+        break;
+      case '12': // 用户管理
+        // navigate to user management page
+        break;
+      case '13': // 个人主页
+        navigate('/User');
+        break;
+      case '14': // 退出登录
+        localStorage.removeItem('token');
+        navigate('/login');
         break;
       default:
         break;
     }
   };
-
-  // 修改后的 items2 - 使用具体的文字
-  const items2 = [
-    
-    {
-      key: '5',
-      icon: React.createElement(AppstoreAddOutlined),
-      label: '订单快递信息',
-      children: [
-        { key: '6', label: '订单信息管理' },
-        { key: '23', label: '设置订单轨迹' },
-      ]
-    },
-    {
-      key: '8',
-      icon: React.createElement(LaptopOutlined),
-      label: '用户订单管理',
-      children: [
-        { key: '21', label: '用户订单' },
-        { key: '22', label: '创建订单' },
-        { key: '7', label: '地址管理' },
-      ]
-
-    },
-    {
-      key: '9',
-      icon: React.createElement(DollarOutlined),
-      label: '优惠券',
-    },
-    {
-      key: '10',
-      icon: React.createElement(PieChartOutlined),
-      label: '数据看板',
-      children: [
-        { key: '11', label: '订单总览' },
-        { key: '12', label: '最近收货统计' },
-        { key: '13', label: '三方余额统计' },
-        { key: '14', label: '订单数据统计' },
-      ]
-    },
-    {
-      key: '15',
-      icon: React.createElement(CalendarOutlined),
-      label: '工单',
-    },
-    {
-      key: '16',
-      icon: React.createElement(CommentOutlined),
-      label: '消息中心',
-      children: [
-        { key: '17', label: '消息状态更新' },
-        { key: '18', label: '最近收货统计' },
-        { key: '19', label: '三方余额统计询' },
-        { key: '20', label: '消息列表获取' },
-      ]
-    },
-    {
-      key: '1',
-      icon: React.createElement(SettingOutlined),
-      label: '系统配置',
-    },
-    {
-      key: '2',
-      icon: React.createElement(UserOutlined),
-      label: '用户管理',
-      children: [
-        { key: '3', label: '个人主页' },
-        { key: '4', label: '退出登录' },
-      ]
-    },
-  ];
 
   const UpperFloatButton = () => (
     <div>
@@ -133,13 +133,17 @@ const Main = () => {
     <Layout>
       <Header style={{ display: 'flex', alignItems: 'center' }}>
         <div className="demo-logo" />
-        <Menu
-          theme="dark"
-          mode="horizontal"
-          defaultSelectedKeys={['2']}
-          items={items1}
-          style={{ flex: 1, minWidth: 0 }}
-        />
+        <div style={{
+          fontSize: '18px',
+          fontWeight: 'bold',
+          color: '#fff',
+          marginLeft: '16px',
+          fontFamily: 'Arial, sans-serif', // 固定字体
+          userSelect: 'none', // 防止选中
+          cursor: 'default',   // 去掉鼠标指针变化
+        }}>
+          快递管理系统
+        </div>
       </Header>
       <Layout>
         <Sider width={200} style={{ background: colorBgContainer }}>
@@ -154,7 +158,6 @@ const Main = () => {
         </Sider>
         <Layout style={{ padding: '0 24px 24px' }}>
           <Breadcrumb
-            items={[{ title: 'Home' }, { title: 'List' }, { title: 'App' }]}
             style={{ margin: '16px 0' }}
           />
           <Content
